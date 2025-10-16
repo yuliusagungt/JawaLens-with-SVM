@@ -53,8 +53,8 @@ REPO_ID = "yuliusat/JawaLens2.0"
 MODEL_OPTIONS = {
     # SVM Models (REQUIRES scaler for proper accuracy)
     "🤖 SVM Model 1 (Recommended)": {
-        "model_file": "model.pkl",        # Upload your trained model.pkl as this name
-        "scaler_file": "scaler.pkl",      # Upload your trained scaler.pkl as this name
+        "model_file": "modelsvm.pkl",        # Upload your trained model.pkl as this name
+        "scaler_file": "scalersvm.pkl",      # Upload your trained scaler.pkl as this name
         "description": "SVM with RBF kernel, trained with Grid Search"
     },
     
@@ -89,14 +89,15 @@ MODEL_OPTIONS = {
 @st.cache_resource
 def load_model(model_filename, scaler_filename=None):
     """Load model and scaler (optional) from Hugging Face Hub with caching"""
-    with st.spinner(f"⏳ Loading {model_filename}..."):
+    with st.spinner(f"Loading model {model_filename}..."):
         try:
-            # Download and load model from Hugging Face repository
+            # Download model from Hugging Face repository
             MODEL_PATH = hf_hub_download(repo_id=REPO_ID, filename=model_filename)
+            
+            # Load model using joblib
             model = joblib.load(MODEL_PATH)
             
-            model_type = type(model).__name__
-            st.success(f"✅ Model loaded: {model_filename} ({model_type})")
+            st.success(f"✓ Model {model_filename} loaded successfully!")
             
             # Load scaler if provided
             SCALER_PATH = None
@@ -104,25 +105,16 @@ def load_model(model_filename, scaler_filename=None):
                 try:
                     SCALER_PATH = hf_hub_download(repo_id=REPO_ID, filename=scaler_filename)
                     scaler = joblib.load(SCALER_PATH)
-                    st.success(f"✅ Scaler loaded: {scaler_filename}")
+                    st.success(f"✓ Scaler {scaler_filename} loaded successfully!")
                 except Exception as e:
-                    st.warning(f"⚠️ Scaler not found: {scaler_filename}")
-                    st.info("Proceeding without scaler. If using SVM, accuracy may be affected.")
+                    st.warning(f"⚠️ Scaler not found: {scaler_filename}. Proceeding without scaler.")
                     SCALER_PATH = None
-            else:
-                st.info("ℹ️ No scaler configured (OK for KNN, ensure proper setup for SVM)")
             
             return model, MODEL_PATH, SCALER_PATH
             
         except Exception as e:
-            st.error(f"❌ Failed to load model: {e}")
-            st.error("Please check:")
-            st.code(f"""
-1. File exists in repository: {REPO_ID}
-2. File name is correct: {model_filename}
-3. You have internet connection
-4. Repository is public or you have access
-            """)
+            # Display error message if loading fails
+            st.error(f"Failed to load model: {e}")
             st.stop()
             return None, None, None
 
@@ -402,7 +394,6 @@ st.markdown("---")
 st.markdown("<div class='card'>", unsafe_allow_html=True)
 st.markdown("### 🤖 Select Model")
 
-# Model selection
 selected_model = st.selectbox(
     "Choose the model to use:",
     options=list(MODEL_OPTIONS.keys()),
@@ -412,19 +403,14 @@ selected_model = st.selectbox(
 
 # Display model info
 model_config = MODEL_OPTIONS[selected_model]
-
 col1, col2 = st.columns(2)
 with col1:
-    st.info(f"**📦 Model:** `{model_config['model_file']}`")
+    st.info(f"**Model:** `{model_config['model_file']}`")
 with col2:
     if model_config['scaler_file']:
-        st.info(f"**📊 Scaler:** `{model_config['scaler_file']}`")
+        st.info(f"**Scaler:** `{model_config['scaler_file']}`")
     else:
-        st.info("**📊 Scaler:** Not required (KNN)")
-
-# Show description if available
-if 'description' in model_config:
-    st.caption(f"ℹ️ {model_config['description']}")
+        st.info("**Scaler:** Not required")
 
 # Load model if selection changed
 if selected_model != st.session_state.selected_model:
