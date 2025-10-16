@@ -1,0 +1,13 @@
+streamlit
+streamlit-cropper
+opencv-python-headless
+numpy
+pandas
+scikit-image
+scipy
+scikit-learn
+joblib
+Pillow
+huggingface_hub
+setuptools
+wheel
